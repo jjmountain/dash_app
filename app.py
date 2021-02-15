@@ -16,9 +16,10 @@ from dash.dependencies import Input, Output
 import plotly.graph_objects as go
 
 
+# now = datetime.datetime.now().isoformat()
+now = datetime.datetime(2021, 2, 11, 15, 0, 0, 0).isoformat()
 
-now = datetime.datetime.now().isoformat()
-start_time = (datetime.datetime.now() - timedelta(days=4)).isoformat()
+start_time = (datetime.datetime(2021, 2, 11, 15, 0, 0, 0) - timedelta(hours=30)).isoformat()
 
 # The granularity field must 
 # be one of the following values: {60, 300, 900, 3600, 21600, 86400}. 
@@ -29,7 +30,7 @@ start_time = (datetime.datetime.now() - timedelta(days=4)).isoformat()
 
 
 
-granularity = '3600'
+granularity = '900'
 
 
 # url = f'https://api.pro.coinbase.com/products/BTC-EUR/candles?granularity={granularity}'
@@ -45,7 +46,7 @@ app = dash.Dash(__name__)
 colors = {
     'background': '#2F4B6C',
     'text': '#F0F2F6',
-    'starting-price': '#8EA1BF',
+    'starting-price': 'red',
     'buy-price': '#6DEAC7',
     'sell-price': '#F7931A'
 }
@@ -96,25 +97,97 @@ fig.update_layout(
 
 )
 
-formatted_starting_price = (format (prices[0], ',d'))
+formatted_starting_price = (format (int(prices[0]), ',d'))
+
+buy_price = int(prices[0] - (prices[0] * .01))
+formatted_buy_price = (format (buy_price, ',d'))
+
+sell_price = int(prices[0] + (buy_price * .01))
+formatted_sell_price = (format (sell_price, ',d'))
+
+distance_from_buy_price_array = [price - buy_price for price in prices]
 
 
+
+
+
+# helper methods to find first negative/positive number in array
+
+def first_neg(list):
+    count = 0
+    for number in list:
+        count += 1
+        if number < 0:
+            return count
+
+
+index_of_closest_buy_price = first_neg(distance_from_buy_price_array)
+
+
+# take the prices after the buy price and for each one calculate 
+
+
+distance_from_sell_price_array = [sell_price - price for price in prices[index_of_closest_buy_price::]]
+
+
+index_of_closest_sell_price = first_neg(distance_from_sell_price_array)
+
+# pdb.set_trace()
 
 # add starting price line
 
 fig.add_trace(go.Scatter(
-    x=[times[0], times[-1]],
-    y=[prices[0], prices[0]],
-    name=f'Starting Price - €{formatted_starting_price}',
-    line=dict(color=colors['starting-price'])
+    x=[times[0]],
+    y=[prices[0]],
+    name=f'Starting Price',
+    line=dict(color=colors['starting-price']),
+    marker=dict(size=10)
 ))
 
+
+
+# map elements in array
+# for each price do this price - buy price
+# find closest result that is a minus number
+# get the index of it
+# the value you want is this index in the real array
+
+# add buy ptc line
+# this should be a dot where finnly will buy (or could have a line up to this dot)
+# how to find the dot where he will buy?
+# have the line stop at the closest data point
+# find the element in the times array where the
+
+fig.add_trace(go.Scatter(
+            x=[times[index_of_closest_buy_price]],
+            y=[buy_price],
+            name='Buy PTC Price',
+            line=dict(color=colors['buy-price']),
+            marker=dict(size=10)
+        ))
+
+
+
+sell_index = index_of_closest_sell_price + index_of_closest_buy_price
+# pdb.set_trace()
+# add sell ptc line
+fig.add_trace(go.Scatter(
+            x=[times[sell_index]],
+            y=[sell_price, sell_price],
+            name='Sell PTC Price',
+            line=dict(color=colors['sell-price']),
+            marker=dict(size=10)
+        ))
+
+# pdb.set_trace()
 
 fig.update_layout(
     plot_bgcolor=colors['background'],
     paper_bgcolor=colors['background'],
     font_color=colors['text']
 )
+
+
 
 
 app.layout = html.Div([
@@ -158,25 +231,49 @@ app.layout = html.Div([
     )
 ])
 
+def calculate_buy_price(value):
+    percentage = value / 100.0
+    buy_price = int(prices[0] - (prices[0] * percentage))
+    return buy_price
+
+def calculate_sell_price(buy_price, percent):
+    percent_as_float = percent / 100.0
+    sell_price = int(buy_price - (buy_price * percent))
+    return sell_price
+
+
+def calculate_new_index(value, buy=True, **kwargs):
+    if buy:
+        buy_price = calculate_buy_price(value)
+        distance_from_buy_price_array = [price - buy_price for price in prices]
+        index_of_closest_buy_price = first_neg(distance_from_buy_price_array)
+        return index_of_closest_buy_price
+    else:
+        buy_price = kwargs['buy_price']
+        distance_from_buy_price_array = [price - buy_price for price in prices]
+        index_of_closest_buy_price = first_neg(distance_from_buy_price_array)
+        sell_price = calculate_sell_price(buy_price, value)
+        distance_from_sell_price_array = [sell_price - price for price in prices[index_of_closest_buy_price::]]
+        index_of_closest_sell_price = first_neg(distance_from_sell_price_array)
+        return index_of_closest_buy_price + index_of_closest_sell_price
+
+def format_price(value):
+    return format (int(value), ',d')
+
 @app.callback(
     Output('graph-with-slider', 'figure'),
-    Input('buy-slider', 'value'))
+    Input('buy-slider', 'value'),
+    Input('sell-slider', 'value'))
 
-
-def update_figure(selected_value):
-    
-    if selected_value == 1:
-        buy_price = int(prices[0] - (prices[0] * .01))
-        formatted_buy_price = (format (buy_price, ',d'))
-        fig.update_layout(title_text=f"Finnly will buy at €{formatted_buy_price}")
-        fig.add_trace(go.Scatter(
-            x=[times[0], times[-1]],
-            y=[buy_price, buy_price],
-            name=f'Buy PTC Price - €{formatted_buy_price}',
-            line=dict(color=colors['buy-price'])
-        ))
-        
-
+def update_figure(buy_value, sell_value):
+    if buy_value > 0 or sell_value > 0:
+        fig.for_each_trace(
+            lambda trace: trace.update(x=[times[calculate_new_index(buy_value)]],
+            y=[calculate_buy_price(buy_value)]) if trace.name == "Buy PTC Price" else (
+                trace.update(x=[times[calculate_new_index(sell_value, False, buy_price=calculate_buy_price(buy_value))]], y=[calculate_sell_price(sell_value, calculate_buy_price(buy_value))])
+            ),
+    )
+        fig.update_layout(title_text=f"Finnly will buy at €{format_price(calculate_buy_price(buy_value))} and sell at €{formatted_sell_price} making a total of €")
     else:
         fig.update_layout(title_text="Choose a Buy and Sell BTC to see how Finnly works")
 
