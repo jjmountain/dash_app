@@ -46,7 +46,7 @@ app = dash.Dash(__name__)
 colors = {
     'background': '#2F4B6C',
     'text': '#F0F2F6',
-    'starting-price': 'red',
+    'starting-price': '#F0F2F6',
     'buy-price': '#6DEAC7',
     'sell-price': '#F7931A'
 }
@@ -238,7 +238,7 @@ def calculate_buy_price(value):
 
 def calculate_sell_price(buy_price, percent):
     percent_as_float = percent / 100.0
-    sell_price = int(buy_price - (buy_price * percent))
+    sell_price = int(buy_price - (buy_price * -percent_as_float))
     return sell_price
 
 
@@ -266,17 +266,19 @@ def format_price(value):
     Input('sell-slider', 'value'))
 
 def update_figure(buy_value, sell_value):
-    if buy_value > 0 or sell_value > 0:
+    if buy_value > 0 and sell_value > 0:
+        # pdb.set_trace()
         fig.for_each_trace(
             lambda trace: trace.update(x=[times[calculate_new_index(buy_value)]],
-            y=[calculate_buy_price(buy_value)]) if trace.name == "Buy PTC Price" else (
-                trace.update(x=[times[calculate_new_index(sell_value, False, buy_price=calculate_buy_price(buy_value))]], y=[calculate_sell_price(sell_value, calculate_buy_price(buy_value))])
-            ),
-    )
-        fig.update_layout(title_text=f"Finnly will buy at €{format_price(calculate_buy_price(buy_value))} and sell at €{formatted_sell_price} making a total of €")
+            y=[calculate_buy_price(buy_value)]) if trace.name == "Buy PTC Price" else ()
+        )
+        fig.for_each_trace(
+            lambda trace: trace.update(x=[times[calculate_new_index(sell_value, False, buy_price=calculate_buy_price(buy_value))]],
+            y=[calculate_sell_price(calculate_buy_price(buy_value), sell_value)]) if trace.name == "Sell PTC Price" else ()
+        )
+        fig.update_layout(title_text=f"Finnly buys 1 Bitcoin at €{format_price(calculate_buy_price(buy_value))} and sells it at €{format_price(calculate_sell_price(calculate_buy_price(buy_value), sell_value))} making a total of €{format_price(calculate_sell_price(calculate_buy_price(buy_value), sell_value) - calculate_buy_price(buy_value))} profit 💰")
     else:
-        fig.update_layout(title_text="Choose a Buy and Sell BTC to see how Finnly works")
-
+        fig.update_layout(title_text="Choose a Buy and Sell PTC to see how Finnly can perform on a trade run")
 
     return fig
 
