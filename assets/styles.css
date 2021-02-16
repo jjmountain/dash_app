@@ -5,6 +5,8 @@
 body {
     font-family: 'Helvetica Neue';
     color: white;
+    height: 100vw;
+    padding-top: 50px;
     background: conic-gradient(from -89.9deg at 52.63% 104.63%, #FDFDFF 0deg, #1B1D27 0deg, #ACB1C8 0.01deg, #1E202B 0.04deg, #8FA4FF 0.07deg, #586083 0.11deg, #30466B 0.14deg, #18A67E 138.75deg, #19AE84 178.42deg, #1ED3A0 360deg);
 
     /* font-weight: 400 !important; */
@@ -19,6 +21,6 @@ body {
 }
 
 .rc-slider-mark-text {
-    color: lightgray !important; 
+    color: white; 
 
 }

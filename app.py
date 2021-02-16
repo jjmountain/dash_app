@@ -42,7 +42,7 @@ response = requests.get(url).json()
 
 app = dash.Dash(__name__)
 
-server = app.server
+# server = app.server
 
 colors = {
     'background': '#2F4B6C',
@@ -191,7 +191,7 @@ fig.update_layout(
 
 
 
-app.layout = html.Div([
+app.layout = html.Div(style={'margin': '30px'}, children=[dcc.Graph(id="graph-with-slider", figure=fig),
     html.Div(style={'margin-top': 30, 'margin-bottom': 10, 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center'}, children=[
         html.Div(style={'margin-right': 10}, children=["Invest"]),
         html.Div(style={"margin-top": 0}, children=[dcc.Input(id='currency-input', value='100', type='number', style={"width": "80px", "text-align": 'center', "padding": 5}), html.Span(style={'margin-left': 10}, children=["Euros"])]),
@@ -226,8 +226,8 @@ app.layout = html.Div([
             step=0.5,
             value=0,
         )
-    ]),
-    dcc.Graph(id="graph-with-slider", figure=fig)
+    ])
+    
 ])
 
 def calculate_buy_price(value):
