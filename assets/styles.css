@@ -1,0 +1,13 @@
+#currency-input {
+    width: 100px;
+}
+
+body {
+    font-family: 'Helvetica Neue';
+    background-color: lightblue;
+    /* font-weight: 400 !important; */
+}
+
+#buy-slider, #sell-slider {
+    margin-top: 20px;
+}

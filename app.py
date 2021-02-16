@@ -82,7 +82,7 @@ fig = px.line(
 )
 
 fig.update_xaxes(showgrid=False, title="", showticklabels=True)
-fig.update_yaxes(showgrid=False, title="Euros")
+fig.update_yaxes(showgrid=False, title="Euro - BTC")
 
 
 
@@ -141,7 +141,7 @@ fig.add_trace(go.Scatter(
     y=[prices[0]],
     name=f'Starting Price',
     line=dict(color=colors['starting-price']),
-    marker=dict(size=10)
+    marker=dict(size=15)
 ))
 
 
@@ -163,7 +163,7 @@ fig.add_trace(go.Scatter(
             y=[buy_price],
             name='Buy PTC Price',
             line=dict(color=colors['buy-price']),
-            marker=dict(size=10)
+            marker=dict(size=15)
         ))
 
 
@@ -176,7 +176,7 @@ fig.add_trace(go.Scatter(
             y=[sell_price, sell_price],
             name='Sell PTC Price',
             line=dict(color=colors['sell-price']),
-            marker=dict(size=10)
+            marker=dict(size=15)
         ))
 
 # pdb.set_trace()
@@ -191,22 +191,27 @@ fig.update_layout(
 
 
 app.layout = html.Div([
-    html.Div(style={'columnCount': 2, 'margin': 50}, children=[
-        html.Label('Buy Price Trigger Control (PTC)'),
+    html.Div(style={'margin-top': 30, 'margin-bottom': 10, 'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center'}, children=[
+        html.Div(style={'margin-right': 10}, children=["Invest"]),
+        html.Div(style={"margin-top": 0}, children=[dcc.Input(id='currency-input', value='100', type='number', style={"width": "80px", "text-align": 'center', "padding": 5}), html.Span(style={'margin-left': 10}, children=["Euros"])]),
+
+    ]),
+    html.Div(style={'columnCount': 2, 'margin': 30}, children=[
+        html.Label(style={'margin-bottom': '30px'}, children=['Buy Price Trigger Control (PTC)']),
         dcc.Slider(
             min=0,
             max=3,
             id='buy-slider',
-
             marks={
                 0: '',
                 1: '-1%',
                 2: '-2%',
                 3: '-3%'
             },
-            value=0,
+            step=0.5,
+            value=0
         ),
-        html.Label('Sell Price Trigger Control (PTC)'),
+        html.Label(style={'margin-bottom': '30px'}, children=['Sell Price Trigger Control (PTC)']),
         dcc.Slider(
             min=0,
             max=3,
@@ -217,6 +222,7 @@ app.layout = html.Div([
                 2: '+2%',
                 3: '+3%'
             },
+            step=0.5,
             value=0,
         )
     ]),
@@ -258,27 +264,51 @@ def calculate_new_index(value, buy=True, **kwargs):
         return index_of_closest_buy_price + index_of_closest_sell_price
 
 def format_price(value):
-    return format (int(value), ',d')
+    return '{:,.2f}'.format(value)
 
 @app.callback(
     Output('graph-with-slider', 'figure'),
+    Input(component_id='currency-input', component_property='value'),
     Input('buy-slider', 'value'),
     Input('sell-slider', 'value'))
 
-def update_figure(buy_value, sell_value):
-    if buy_value > 0 and sell_value > 0:
+def update_figure(input_value, buy_value, sell_value):
+
+    if int(input_value) <= 0:
+        fig.update_layout(title_text="Enter a investment of over zero and choose a Buy and Sell PTC to see how Finnly can perform on a trade run")
+    elif buy_value > 0 and sell_value > 0:
         # pdb.set_trace()
+        buy_price = calculate_buy_price(buy_value)
+        sell_price = calculate_sell_price(buy_price, sell_value)
         fig.for_each_trace(
             lambda trace: trace.update(x=[times[calculate_new_index(buy_value)]],
-            y=[calculate_buy_price(buy_value)]) if trace.name == "Buy PTC Price" else ()
+            y=[buy_price], visible=True) if trace.name == "Buy PTC Price" else ()
         )
         fig.for_each_trace(
-            lambda trace: trace.update(x=[times[calculate_new_index(sell_value, False, buy_price=calculate_buy_price(buy_value))]],
-            y=[calculate_sell_price(calculate_buy_price(buy_value), sell_value)]) if trace.name == "Sell PTC Price" else ()
+            lambda trace: trace.update(x=[times[calculate_new_index(sell_value, False, buy_price=buy_price)]],
+            y=[sell_price], visible=True) if trace.name == "Sell PTC Price" else ()
         )
-        fig.update_layout(title_text=f"Finnly buys 1 Bitcoin at €{format_price(calculate_buy_price(buy_value))} and sells it at €{format_price(calculate_sell_price(calculate_buy_price(buy_value), sell_value))} making a total of €{format_price(calculate_sell_price(calculate_buy_price(buy_value), sell_value) - calculate_buy_price(buy_value))} profit 💰")
+        amount_of_btc_bought = round(int(input_value) / buy_price, 5)
+        amount_btc_bought_for = buy_price * amount_of_btc_bought
+        amount_btc_sold_for = sell_price * amount_of_btc_bought
+        profit = amount_btc_sold_for - amount_btc_bought_for
+        fig.update_layout(title_text=f"Finnly buys {amount_of_btc_bought} BTC at €{format_price(amount_btc_bought_for)} and sells it at €{format_price(amount_btc_sold_for)} making a total of €{format_price(round(profit, 5))} profit 💰")
     else:
-        fig.update_layout(title_text="Choose a Buy and Sell PTC to see how Finnly can perform on a trade run")
+        fig.update_layout(title_text="Choose a Buy and Sell PTC to see how Finnly can perform on a trade run over 2 days")
+        fig.for_each_trace(
+            lambda trace: trace.update(visible=False) if trace.name == "Buy PTC Price" or trace.name == "Sell PTC Price" else ()
+        )
+    # fig = px.scatter(filtered_df, x="gdpPercap", y="lifeExp",
+    #                 size="pop", color="continent", hover_name="country",
+    #                 log_x=True, size_max=55)
+    
+    # # 
+    # fig = px.line(
+    #     x=times, y=prices, title="Choose a Buy and Sell BTC to see how Finnly works", height=325
+    # )
+
+    # fig.update_layout(transition_duration=500)
+    
 
     return fig
 
