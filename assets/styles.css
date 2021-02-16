@@ -13,3 +13,12 @@ body {
 #buy-slider, #sell-slider {
     margin-top: 20px;
 }
+
+.rc-slider-mark-text-active {
+    color: white !important;
+}
+
+.rc-slider-mark-text {
+    color: lightgray !important; 
+
+}
