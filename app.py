@@ -227,15 +227,7 @@ app.layout = html.Div([
             value=0,
         )
     ]),
-    dcc.Graph(id="graph-with-slider", figure=fig),
-    html.Pre(
-        id='structure',
-        style={
-            'border': 'thin lightgrey solid', 
-            'overflowY': 'scroll',
-            'height': '275px'
-        }
-    )
+    dcc.Graph(id="graph-with-slider", figure=fig)
 ])
 
 def calculate_buy_price(value):
