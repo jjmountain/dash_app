@@ -43,6 +43,8 @@ response = requests.get(url).json()
 
 app = dash.Dash(__name__)
 
+server = app.server
+
 colors = {
     'background': '#2F4B6C',
     'text': '#F0F2F6',
